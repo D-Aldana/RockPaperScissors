@@ -1,6 +1,8 @@
 import cv2
 import base64
+import math
 import sys
+import time
 
 class VideoUtils:
 
@@ -141,34 +143,26 @@ class DisplayUtils:
     
     #     return 
 
-    def countdown(self, frame, seconds, socketio):
+    def countdown(self, video, cap, seconds, socketio):
         """
-        Display a countdown on the frame.
+        Display a countdown over the live video feed.
 
         Args:
-            frame: Frame to display the countdown on
+            video: VideoUtils object
+            cap: VideoCapture object
             seconds: Number of seconds to countdown from
+            socketio: SocketIO server
 
         Returns:
-            frame: Frame with the countdown displayed on it
+            None
         """
-        x, y = frame.shape[:2]
-        startMsg = "Get Ready..."
-        cv2.rectangle(frame, (0, 0), (y, x), (0, 0, 0), -1)
-        frame = self.centerText(startMsg, frame)
-        self.showFrame(frame, socketio)
-        self.wait(1000)
 
-        x, y, _ = frame.shape
-        for i in range(seconds, 0, -1):
-            cv2.rectangle(frame, (0, 0), (y, x), (0, 0, 0), -1)
-            self.centerText(str(i), frame)
-            self.showFrame(frame, socketio)
-            self.wait(1000)
-        return frame
-        
-    
-    def centerText(self, msg, frame, colour=(255, 255, 255)):
+        end = time.time() + seconds
+        while (remaining := end - time.time()) > 0:
+            _, frame = video.readFrame(cap)
+            self.showFrame(self.centerText(str(math.ceil(remaining)), frame, font_scale=4, font_thickness=8), socketio)
+
+    def centerText(self, msg, frame, colour=(255, 255, 255), font_scale=1, font_thickness=2):
         """
         Display text in the center of the frame.
 
@@ -183,8 +177,6 @@ class DisplayUtils:
 
         text = msg
         font = cv2.FONT_HERSHEY_SIMPLEX
-        font_scale = 1
-        font_thickness = 2
         text_size = cv2.getTextSize(text, font, font_scale, font_thickness)[0]
         text_x = (frame.shape[1] - text_size[0]) // 2
         text_y = (frame.shape[0] + text_size[1]) // 2

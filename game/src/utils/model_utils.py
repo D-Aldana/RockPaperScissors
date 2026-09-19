@@ -68,8 +68,9 @@ class ModelUtils:
                 frame: Frame with landmarks
                 className: Predicted gesture
             """
-            x, y, _ = frame.shape
-            
+            # The model was trained on pixel coords from a 640x480 webcam
+            x, y = 480, 640
+
             frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             result = hands.process(frame_rgb)
             className = None
@@ -82,7 +83,7 @@ class ModelUtils:
                         lmy = int(lm.y * y)
                         landmarks.append([lmx, lmy])
 
-                prediction = model.predict([landmarks])
+                prediction = model.predict([landmarks], verbose=0)
                 classID = np.argmax(prediction)
                 className = classNames[classID]
 
