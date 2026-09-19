@@ -5,6 +5,8 @@ from flask import Flask, render_template, Response
 from flask_socketio import SocketIO, emit
 from flask_cors import CORS
 import redis
+import time
+from collections import Counter
 
 
 app = Flask(__name__)
@@ -13,6 +15,19 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 redis = redis.Redis(host='localhost', port=6379, db=0)
 game_trigger = GameStart()
 game = GameUtils()
+
+def readGesture(video, cap, display, model, hands, gesture_model, classNames, seconds=0.75):
+    # A single frame is often mid-motion or misclassified, so vote across a short window
+    votes = Counter()
+    end = time.time() + seconds
+    while time.time() < end:
+        _, frame = video.readFrame(cap)
+        display.showFrame(frame, socketio)
+        _, gesture = model.processGesture(frame, hands, gesture_model, classNames)
+        if gesture:
+            votes[gesture] += 1
+    player_gesture = votes.most_common(1)[0][0] if votes else None
+    return frame, player_gesture
 
 def rockPaperScissors(video, cap):
 
@@ -43,17 +58,10 @@ def rockPaperScissors(video, cap):
             display.showFrame(frame, socketio)
 
             if game_trigger.getGameStart():
-                # Display the countdown
-                # frame = display.countdown(frame, 3, socketio)
+                display.countdown(video, cap, 3, socketio)
 
-                # Read gesture
-                res, frame = video.readFrame(cap)
-
-                # Get the computer gesture
                 computer_gesture = game.rockPaperScissors()
-
-                # Process the gesture
-                frame, player_gesture = model.processGesture(frame, hands, gesture_model, classNames)
+                frame, player_gesture = readGesture(video, cap, display, model, hands, gesture_model, classNames)
             
                 # Process the game result
                 result = game.processGameResult(player_gesture, computer_gesture)
