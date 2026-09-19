@@ -2,8 +2,9 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 import io from 'socket.io-client';
+import './App.css';
 
-const ENDPOINT = 'http://localhost:5000';  
+const ENDPOINT = 'http://localhost:5000';
 
 function base64ToImage(base64String) {
   const binaryString = atob(base64String);
@@ -42,23 +43,14 @@ const App = () => {
     };
   }, []);
 
-  const handleUsernameSubmit = () => {
-    setUsername(username);
+  const handleUsernameSubmit = (e) => {
+    e.preventDefault();
+    const name = username.trim();
+    if (!name) return;
+    setUsername(name);
     setUsernameEntered(true);
-    socket.emit('username', username);
+    socket.emit('username', name);
   };
-
-  // useEffect(() => {
-  //   if (!socket) return;
-
-  //   socket.on('username', (data) => {
-  //     setUsername(data.username);
-  //   });
-
-  //   return () => {
-  //     socket.off('username');
-  //   };
-  // }, [socket]);
 
   useEffect(() => {
     if (!socket) return;
@@ -78,16 +70,15 @@ const App = () => {
 
     socket.on('video_feed', (frame) => {
       const image = base64ToImage(frame);
-      
+
       if (!imageRef.current) return;
       imageRef.current.src = image.src;
-      // console.log("Frame received")
     });
-    
-    return () => {  
+
+    return () => {
       socket.off('video_feed');
-    } 
-    
+    }
+
   }, [socket]);
 
   // Get scores from server {score, player_score, computer_score}
@@ -105,221 +96,92 @@ const App = () => {
     };
   }, [socket]);
 
-  // Styles 
-  const containerStyle = {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    // Set height to match the the height of all the content
-    height: '130vh',
-    background: 'linear-gradient(to bottom, #3498db, #2ecc71)', // Gradient from blue to green
-    color: '#fff', // Text color to ensure contrast
-  };
+  if (!usernameEntered) {
+    return (
+      <main className="lobby">
+        <h1 className="lobby-title">
+          <span>Rock</span>
+          <span>Paper</span>
+          <span>Scissors</span>
+        </h1>
+        <p className="lobby-sub">Throw your hand at the camera. Best of forever.</p>
+        <form className="lobby-form" onSubmit={handleUsernameSubmit}>
+          <label htmlFor="username" className="field-label">Your name</label>
+          <div className="lobby-row">
+            <input
+              id="username"
+              type="text"
+              autoComplete="off"
+              autoFocus
+              maxLength={20}
+              placeholder="e.g. Dustin"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+            />
+            <button type="submit" className="btn btn-primary" disabled={!username.trim() || !socket}>
+              Play
+            </button>
+          </div>
+        </form>
+      </main>
+    );
+  }
 
-  const scoreBoxStyle = {
-    backgroundColor: '#f1f1f1',
-    padding: '20px',
-    borderRadius: '8px',
-    textAlign: 'center',
-    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-    height: '100px', // Set a fixed height for the score boxes
-    width: '80px', // Set a fixed width for the score boxes
-  };
-  
-  const scoreLabelStyle = {
-    fontSize: '1.2rem',
-    color: '#3498db',
-    marginBottom: '10px',
-    fontFamily: 'Roboto',
-  };
-  
-  const scoreValueStyle = {
-    fontSize: '2rem',
-    color: '#2ecc71',
-    margin: '0',
-    fontFamily: 'Roboto',
-  };
-
-  const textBoxContainerStyle = {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    // Set height to match the the height of all the content
-    height: '100vh',
-  };
-  
-  const textBoxStyle = {
-    padding: '10px',
-    fontSize: '1rem',
-    border: '1px solid #ccc',
-    borderRadius: '5px',
-    marginBottom: '10px',
-    width: '300px',
-  };
-  
-  const tableCellStyle = {
-    border: '1px solid #ddd',  // Border color
-    padding: '8px',  // Padding for cells
-    textAlign: 'left',  // Align text to the left within cells
-  };
-
-  
   return (
-  <div style={containerStyle}>
-    {/* <img ref={testImg} alt="TEST" style={{ width: '100px', height: '100px' }} /> */}
-    
-    {usernameEntered && (<h1 style={{ fontFamily: 'Roboto', fontSize: '3rem', color: '#2f4f4f', marginBottom: '20px' }}>Rock Paper Scissors</h1>) }
+    <main className="arena">
+      <header className="arena-header">
+        <span className="wordmark">Rock Paper Scissors</span>
+        <span className={`streak${consecutiveWins > 0 ? ' is-hot' : ''}`}>
+          Win streak <strong>{consecutiveWins}</strong>
+        </span>
+      </header>
 
-    {usernameEntered && (<img
-      ref={imageRef}
-      alt="STREAM"
-      style={{
-        border: '6px solid #1b1b1b', // You can adjust the color and thickness
-        borderRadius: '8px', // Optional: adds rounded corners
-        boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)', // Optional: adds shadow
-      }}
-    />
-    )}
+      <section className="scoreboard" aria-label="Score">
+        <div className="corner corner-red">
+          <span className="corner-label">Red corner</span>
+          <span className="corner-name">{username}</span>
+          <span key={playerScore} className="corner-score">{playerScore}</span>
+        </div>
+        <span className="vs" aria-hidden="true">vs</span>
+        <div className="corner corner-blue">
+          <span className="corner-label">Blue corner</span>
+          <span className="corner-name">CPU</span>
+          <span key={computerScore} className="corner-score">{computerScore}</span>
+        </div>
+      </section>
 
-    {/* Username input box */}
-    {!usernameEntered && (
-      <div style={textBoxContainerStyle}>
-        <h1 style={{ fontFamily: 'Roboto', fontSize: '3rem', color: '#2f4f4f' }}>Rock Paper Scissors</h1>
-        <input
-          type="text"
-          placeholder="Enter your username"
-          style={textBoxStyle}
-          onChange={(e) => setUsername(e.target.value)}
-        />
-        <button
-          style={{
-            backgroundColor: '#2ecc71',
-            color: '#fff',
-            padding: '10px 20px',
-            fontSize: '1.2rem',
-            margin: '10px',
-            border: 'none',
-            cursor: 'pointer',
-            borderRadius: '5px',
-            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-            fontFamily: 'Roboto',
-          }}
-          onClick={handleUsernameSubmit}
-        >
-          Submit
-        </button>
-      </div>
-    )}
-    
-
-
-    {/* Button to start the game */}
-    {usernameEntered && (<button
-      style={{
-        backgroundColor: '#2ecc71',
-        color: '#fff',
-        padding: '10px 20px',
-        fontSize: '1.2rem',
-        margin: '10px',
-        border: 'none',
-        cursor: 'pointer',
-        borderRadius: '5px',
-        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-        fontFamily: 'Roboto',
-      }}
-      onClick={() => socket.emit('start_game')}
-    >
-      Start Game
-    </button>
-    )}
-
-    {/* Button to reset the scores */}
-    {usernameEntered && (<button
-      style={{
-        backgroundColor: '#e74c3c',
-        color: '#fff',
-        padding: '10px 20px',
-        fontSize: '0.8rem',
-        margin: '10px',
-        border: 'none',
-        cursor: 'pointer',
-        borderRadius: '5px',
-        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-      }}
-      onClick={() => socket.emit('reset_game')}
-    >
-      Reset Scores
-    </button>
-    )}
-
-    {/* Display the consecutive wins */}
-    {usernameEntered && (
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'row',
-          justifyContent: 'center',
-          alignItems: 'center',  // Align text in the center vertically
-          margin: '10px',  // Increase margin for better spacing
-          padding: '15px',  // Add padding for space inside the box
-          border: '2px solid #3498db',  // Border color
-          borderRadius: '8px',  // Rounded corners
-          backgroundColor: '#f1f1f1',  // Background color
-        }}
-      >
-        <p
-          style={{
-            fontFamily: 'Roboto',
-            fontSize: '1.2rem',
-            color: '#2f4f4f',
-            margin: '0',  // Remove default margin for the paragraph
-          }}
-        >
-          Consecutive Wins: {consecutiveWins}
-        </p>
-      </div>
-    )}
-
-    {/* Display the scores */}
-    {usernameEntered && 
-    (<div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'center', margin: '20px' }}>
-          <div style={scoreBoxStyle}>
-            <p style={scoreLabelStyle}>{username}</p>
-            <h2 style={scoreValueStyle}>{playerScore}</h2>
+      <div className="arena-body">
+        <section className="stage">
+          <div className="feed">
+            <img ref={imageRef} alt="Your webcam feed" />
           </div>
-
-          <div style={{ width: '20px' }}></div> {/* Adjust the space between score boxes */}
-
-          <div style={scoreBoxStyle}>
-            <p style={scoreLabelStyle}>CPU</p>
-            <h2 style={scoreValueStyle}>{computerScore}</h2>
+          <div className="controls">
+            <button className="btn btn-primary btn-lg" onClick={() => socket.emit('start_game')}>
+              Play round
+            </button>
+            <button className="btn btn-ghost" onClick={() => socket.emit('reset_game')}>
+              Reset scores
+            </button>
           </div>
-    </div>)}
-    
-    {/* Display the top 5 scores*/}
-    {usernameEntered && (<div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'center', margin: '20px', width: '25%'}}>
-      <h2>Most Consecutive Wins</h2>
-      <table style={{ borderCollapse: 'collapse', width: '100%' }}>
-        <thead>
-          <tr>
-            <th style={tableCellStyle}>Player</th>
-            <th style={tableCellStyle}>Score</th>
-          </tr>
-        </thead>
-        <tbody>
-          {topScores.map((item) => (
-            <tr key={item.username}>
-              <td style={tableCellStyle}>{item.username}</td>
-              <td style={tableCellStyle}>{item.score}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>)}
-      
-  </div>
+        </section>
 
+        <aside className="leaderboard">
+          <h2>Best win streaks</h2>
+          {topScores.length === 0 ? (
+            <p className="empty">No streaks yet. Win a round to get on the board.</p>
+          ) : (
+            <ol>
+              {topScores.map((item) => (
+                <li key={item.username} className={item.username === username ? 'is-you' : undefined}>
+                  <span className="lb-name">{item.username}</span>
+                  <span className="lb-score">{item.score}</span>
+                </li>
+              ))}
+            </ol>
+          )}
+        </aside>
+      </div>
+    </main>
   );
 };
 
