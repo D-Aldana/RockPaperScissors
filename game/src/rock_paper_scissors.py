@@ -14,10 +14,7 @@ redis = redis.Redis(host='localhost', port=6379, db=0)
 game_trigger = GameStart()
 game = GameUtils()
 
-def rockPaperScissors():
-
-    # Initialize the video utils
-    video = VideoUtils()
+def rockPaperScissors(video, cap):
 
     # Initialize the display utils
     display = DisplayUtils()
@@ -34,8 +31,6 @@ def rockPaperScissors():
     # Load class names
     classNames = model.getClassNames()
 
-    # Initialize the webcam
-    cap = video.initializeVideoCapture()
     game.sendTopScores(socketio, redis)
     
     # Play the game
@@ -112,8 +107,12 @@ def set_username(data):
     game.setUsername(data)
 
 if __name__ == "__main__":
-    socketio.start_background_task(target=rockPaperScissors)
-    socketio.run(app, debug=True)
+    # macOS only shows the camera permission prompt from the main thread
+    video = VideoUtils()
+    cap = video.initializeVideoCapture()
+    socketio.start_background_task(rockPaperScissors, video, cap)
+    # 5000 is taken by AirPlay Receiver on macOS; the reloader would also open the camera twice
+    socketio.run(app, port=5001, debug=True, use_reloader=False, allow_unsafe_werkzeug=True)
 
 
 
