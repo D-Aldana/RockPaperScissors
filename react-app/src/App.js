@@ -23,12 +23,78 @@ function base64ToImage(base64String) {
   return image;
 }
 
+const GESTURES = {
+  rock: { icon: '✊', label: 'Rock' },
+  paper: { icon: '✋', label: 'Paper' },
+  scissors: { icon: '✌️', label: 'Scissors' },
+};
+
+const OUTCOMES = {
+  1: { title: 'You win', tone: 'win' },
+  0: { title: 'Draw', tone: 'draw' },
+  '-1': { title: 'CPU wins', tone: 'lose' },
+};
+
+const Throw = ({ who, gesture }) => {
+  const g = GESTURES[gesture];
+  return (
+    <div className="throw">
+      <span className="throw-icon" aria-hidden="true">{g ? g.icon : '?'}</span>
+      <span className="throw-who">{who}</span>
+      <span className="throw-name">{g ? g.label : 'Nothing'}</span>
+    </div>
+  );
+};
+
+const RoundOverlay = ({ round }) => {
+  if (round.phase === 'countdown') {
+    return (
+      <div className="overlay overlay-dim" role="status">
+        <span key={round.count} className="countdown">{round.count}</span>
+      </div>
+    );
+  }
+
+  if (round.phase === 'shoot') {
+    return (
+      <div className="overlay" role="status">
+        <span className="shoot">Shoot!</span>
+      </div>
+    );
+  }
+
+  if (round.phase === 'result') {
+    const outcome = OUTCOMES[round.result];
+    return (
+      <div className="overlay overlay-dim" role="status">
+        <div className={`result result-${outcome ? outcome.tone : 'miss'}`}>
+          <span className="result-title">{outcome ? outcome.title : 'No hand seen'}</span>
+          {outcome ? (
+            <div className="throws">
+              <Throw who="You" gesture={round.player} />
+              <span className="throws-vs" aria-hidden="true">vs</span>
+              <Throw who="CPU" gesture={round.computer} />
+            </div>
+          ) : (
+            <span className="result-hint">Keep your whole hand in frame and try again.</span>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  return null;
+};
+
 const App = () => {
   const [socket, setSocket] = useState(null);
   const [playerScore, setPlayerScore] = useState(0);
   const [computerScore, setComputerScore] = useState(0);
   const [consecutiveWins, setConsecutiveWins] = useState(0);
   const imageRef = useRef(new Image());
+  const [connected, setConnected] = useState(false);
+  const [cameraReady, setCameraReady] = useState(false);
+  const [round, setRound] = useState({ phase: 'idle' });
   const [username, setUsername] = useState('');
   const [usernameEntered, setUsernameEntered] = useState(false);
   // Variable for list of top 5 scores
@@ -37,6 +103,14 @@ const App = () => {
   useEffect(() => {
     const socket = io(ENDPOINT);
     setSocket(socket);
+
+    socket.on('connect', () => setConnected(true));
+    // Frames stop with the connection, so wait for a fresh one after reconnecting
+    socket.on('disconnect', () => {
+      setConnected(false);
+      setCameraReady(false);
+      setRound({ phase: 'idle' });
+    });
 
     return () => {
       socket.disconnect();
@@ -70,6 +144,7 @@ const App = () => {
 
     socket.on('video_feed', (frame) => {
       const image = base64ToImage(frame);
+      setCameraReady(true);
 
       if (!imageRef.current) return;
       imageRef.current.src = image.src;
@@ -79,6 +154,16 @@ const App = () => {
       socket.off('video_feed');
     }
 
+  }, [socket]);
+
+  useEffect(() => {
+    if (!socket) return;
+
+    socket.on('round', setRound);
+
+    return () => {
+      socket.off('round');
+    };
   }, [socket]);
 
   // Get scores from server {score, player_score, computer_score}
@@ -152,12 +237,19 @@ const App = () => {
 
       <div className="arena-body">
         <section className="stage">
-          <div className="feed">
+          <div className={`feed${cameraReady ? ' is-live' : ''}`}>
             <img ref={imageRef} alt="Your webcam feed" />
+            {!cameraReady && (
+              <div className="feed-loading" role="status">
+                <span className="spinner" aria-hidden="true" />
+                <span>{connected ? 'Waiting for camera…' : 'Connecting to game server…'}</span>
+              </div>
+            )}
+            <RoundOverlay round={round} />
           </div>
           <div className="controls">
-            <button className="btn btn-primary btn-lg" onClick={() => socket.emit('start_game')}>
-              Play round
+            <button className="btn btn-primary btn-lg" disabled={!cameraReady || round.phase !== 'idle'} onClick={() => socket.emit('start_game')}>
+              {round.phase === 'idle' ? 'Play round' : 'Playing…'}
             </button>
             <button className="btn btn-ghost" onClick={() => socket.emit('reset_game')}>
               Reset scores

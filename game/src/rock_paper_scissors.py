@@ -60,14 +60,15 @@ def rockPaperScissors(video, cap):
             if game_trigger.getGameStart():
                 display.countdown(video, cap, 3, socketio)
 
+                socketio.emit('round', {'phase': 'shoot'})
                 computer_gesture = game.rockPaperScissors()
                 frame, player_gesture = readGesture(video, cap, display, model, hands, gesture_model, classNames)
             
                 # Process the game result
                 result = game.processGameResult(player_gesture, computer_gesture)
 
-                # Display the result
-                frame = display.displayResult(frame, result, player_gesture, computer_gesture)
+                # The frontend draws the result over the frozen frame
+                socketio.emit('round', {'phase': 'result', 'result': result, 'player': player_gesture, 'computer': computer_gesture})
 
                 # Check high score
                 if game.checkHighScore(redis, game.getConsecutiveWins(), socketio):
@@ -81,6 +82,7 @@ def rockPaperScissors(video, cap):
                 game.sendScore(socketio)
                 display.wait(3000)
 
+                socketio.emit('round', {'phase': 'idle'})
                 game_trigger.setGameStart(False)
 
             # Check for quit
