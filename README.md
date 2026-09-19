@@ -14,59 +14,18 @@ The project is structured as follows:
 
 ## Setup
 
-To set up and run the project locally, follow these steps:
-
-### 1. Clone the Repository
+Requires Python 3.11 (TensorFlow 2.15 doesn't support newer versions), Node, and Redis (`brew install python@3.11 redis` on macOS).
 
 ```bash
 git clone https://github.com/D-Aldana/RockPaperScissors.git
+cd RockPaperScissors
+make install   # Python venv in game/.venv + npm install
+make dev       # starts Redis, the game server (port 5001) and the React app
 ```
 
-### 2. Install Dependencies
+The gesture model isn't tracked in git. Place it at `game/src/utils/models/hand-gesture-recognition-code/` (it can be restored from commit `15ebd180^`).
 
-#### Backend Dependencies
-
-In the `game/` directory, install Python dependencies:
-
-```bash
-cd game
-pip install -r requirements.txt
-```
-
-#### Frontend Dependencies
-
-In the `react-app/` directory, install npm dependencies:
-
-```bash
-cd ../react-app
-npm install
-```
-
-### 3. Run Redis Server
-
-Make sure you have Redis installed on your machine. If not, you can install it via package managers like Homebrew (for macOS) or apt (for Ubuntu).
-
-Start the Redis server on your local machine:
-
-```bash
-redis-server
-```
-
-### 4. Run the Backend Server
-
-In the `game/` directory, start the Python backend server:
-
-```bash
-python rock_paper_scissors.py
-```
-
-### 5. Run the Frontend Server
-
-In the `react-app/` directory, start the React frontend server:
-
-```bash
-npm start
-```
+On macOS, allow camera access for your terminal when prompted.
 
 ## How to Play
 

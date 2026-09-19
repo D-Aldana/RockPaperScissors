@@ -30,3 +30,7 @@ Thumbs.db
 
 # Ignore model artifacts
 hand-gesture-recognition-code/
+
+# Python virtualenv
+.venv/
+__pycache__/

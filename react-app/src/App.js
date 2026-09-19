@@ -4,7 +4,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import io from 'socket.io-client';
 import './App.css';
 
-const ENDPOINT = 'http://localhost:5000';
+const ENDPOINT = 'http://localhost:5001';
 
 function base64ToImage(base64String) {
   const binaryString = atob(base64String);

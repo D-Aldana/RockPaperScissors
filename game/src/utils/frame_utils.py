@@ -1,5 +1,6 @@
 import cv2
 import base64
+import sys
 
 class VideoUtils:
 
@@ -18,7 +19,9 @@ class VideoUtils:
             cap: VideoCapture object
         """
 
-        cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+        # DirectShow only exists on Windows
+        backend = cv2.CAP_DSHOW if sys.platform == 'win32' else cv2.CAP_ANY
+        cap = cv2.VideoCapture(0, backend)
         if not cap.isOpened():
             raise Exception("Error opening the camera")
 
