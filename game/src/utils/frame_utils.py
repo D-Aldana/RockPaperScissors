@@ -46,10 +46,33 @@ class VideoUtils:
         res, frame = cap.read()
         if not res:
             raise Exception("Error reading the frame")
-        frame = cv2.flip(frame, 1)
+        frame = cv2.flip(self.cropTo4x3(frame), 1)
         # cv2.imshow("Rock Paper Scissors", frame)
         # frameRGB = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         return res, frame
+
+    def cropTo4x3(self, frame):
+        """
+        Center-crop a frame to 4:3.
+
+        The gesture model was trained on 4:3 webcam frames. Landmarks are normalized
+        to the frame, so a 16:9 frame squashes the hand shape and throws off predictions.
+
+        Args:
+            frame: Frame to crop
+
+        Returns:
+            frame: 4:3 frame
+        """
+
+        h, w = frame.shape[:2]
+        if w * 3 > h * 4:
+            crop_w = h * 4 // 3
+            x = (w - crop_w) // 2
+            return frame[:, x:x + crop_w]
+        crop_h = w * 3 // 4
+        y = (h - crop_h) // 2
+        return frame[y:y + crop_h]
 
     def checkQuit(self):
         """

@@ -18,14 +18,15 @@ game = GameUtils()
 
 def readGesture(video, cap, display, model, hands, gesture_model, classNames, seconds=0.75):
     # A single frame is often mid-motion or misclassified, so vote across a short window
-    votes = Counter()
+    seen = Counter()
     end = time.time() + seconds
     while time.time() < end:
         _, frame = video.readFrame(cap)
         display.showFrame(frame, socketio)
         _, gesture = model.processGesture(frame, hands, gesture_model, classNames)
-        if gesture:
-            votes[gesture] += 1
+        seen[gesture] += 1
+    print(f"Gestures seen: {dict(seen)}")
+    votes = Counter({g: n for g, n in seen.items() if g in ("rock", "paper", "scissors")})
     player_gesture = votes.most_common(1)[0][0] if votes else None
     return frame, player_gesture
 
