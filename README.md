@@ -1,6 +1,3 @@
-### Demo:
-https://youtu.be/9qtuz4oOwE8
-
 # Webcam Rock Paper Scissors
 
 This project implements the classic Rock, Paper, Scissors game with a React frontend, a Python backend for the game logic, and Redis for storing and retrieving high scores. The frontend and backend communicate via websockets.
