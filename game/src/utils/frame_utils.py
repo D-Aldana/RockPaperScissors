@@ -46,10 +46,33 @@ class VideoUtils:
         res, frame = cap.read()
         if not res:
             raise Exception("Error reading the frame")
-        frame = cv2.flip(frame, 1)
+        frame = cv2.flip(self.cropTo4x3(frame), 1)
         # cv2.imshow("Rock Paper Scissors", frame)
         # frameRGB = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         return res, frame
+
+    def cropTo4x3(self, frame):
+        """
+        Center-crop a frame to 4:3.
+
+        The gesture model was trained on 4:3 webcam frames. Landmarks are normalized
+        to the frame, so a 16:9 frame squashes the hand shape and throws off predictions.
+
+        Args:
+            frame: Frame to crop
+
+        Returns:
+            frame: 4:3 frame
+        """
+
+        h, w = frame.shape[:2]
+        if w * 3 > h * 4:
+            crop_w = h * 4 // 3
+            x = (w - crop_w) // 2
+            return frame[:, x:x + crop_w]
+        crop_h = w * 3 // 4
+        y = (h - crop_h) // 2
+        return frame[y:y + crop_h]
 
     def checkQuit(self):
         """
@@ -145,7 +168,7 @@ class DisplayUtils:
 
     def countdown(self, video, cap, seconds, socketio):
         """
-        Display a countdown over the live video feed.
+        Stream the live video feed while the frontend shows a countdown.
 
         Args:
             video: VideoUtils object
@@ -158,57 +181,14 @@ class DisplayUtils:
         """
 
         end = time.time() + seconds
+        last_count = None
         while (remaining := end - time.time()) > 0:
+            count = math.ceil(remaining)
+            if count != last_count:
+                socketio.emit('round', {'phase': 'countdown', 'count': count})
+                last_count = count
             _, frame = video.readFrame(cap)
-            self.showFrame(self.centerText(str(math.ceil(remaining)), frame, font_scale=4, font_thickness=8), socketio)
-
-    def centerText(self, msg, frame, colour=(255, 255, 255), font_scale=1, font_thickness=2):
-        """
-        Display text in the center of the frame.
-
-        Args:
-            msg: Message to display
-            frame: Frame to display the message on
-            colour: Colour of the text
-
-        Returns:
-            frame: Frame with the text displayed on it
-        """
-
-        text = msg
-        font = cv2.FONT_HERSHEY_SIMPLEX
-        text_size = cv2.getTextSize(text, font, font_scale, font_thickness)[0]
-        text_x = (frame.shape[1] - text_size[0]) // 2
-        text_y = (frame.shape[0] + text_size[1]) // 2
-        cv2.putText(frame, text, (text_x, text_y), font, font_scale, colour, font_thickness)
-        return frame
-
-
-    def displayResult(self, frame, result, player_gesture, computer_gesture):
-        """
-        Display the result of the game.
-
-        Args:
-            frame: Frame to display the result on
-            result: Result of the game
-
-        Returns:
-            frame: Frame with the result displayed on it
-        """
-
-        if result == 1:
-            msg = "You win!"
-        elif result == -1:
-            msg = "You lose!"
-        elif result == 0:
-            msg = "It's a draw!"
-        else:
-            msg = "Invalid gesture!"
-
-        result = f"You played {player_gesture} | Computer played {computer_gesture}"
-        cv2.putText(frame, result, (10, frame.shape[0] - 25), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2, cv2.LINE_AA)
-        frame = self.centerText(msg, frame, colour=(0, 255, 0))
-        return frame
+            self.showFrame(frame, socketio)
 
     # def displayScore(self, frame, player_score, computer_score):
     #     """

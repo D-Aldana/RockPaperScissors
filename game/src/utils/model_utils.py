@@ -66,7 +66,7 @@ class ModelUtils:
 
             Returns:
                 frame: Frame with landmarks
-                className: Predicted gesture
+                className: Predicted gesture, or None if no hand was found
             """
             # The model was trained on pixel coords from a 640x480 webcam
             x, y = 480, 640
@@ -86,8 +86,5 @@ class ModelUtils:
                 prediction = model.predict([landmarks], verbose=0)
                 classID = np.argmax(prediction)
                 className = classNames[classID]
-
-                if className not in ["rock", "paper", "scissors"]:
-                    className = None
 
             return frame, className
